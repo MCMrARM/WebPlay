@@ -6,12 +6,13 @@ var translation;
 function Client() {
     var FRAGMENT_SHADER =
         "precision mediump float;\n" +
+        "uniform vec4 uFragmentColor;\n" +
         "varying vec2 vTextureCoord;\n" +
         "varying vec4 vColor;\n" +
         "uniform sampler2D uSampler;\n" +
         "void main() {\n" +
         //" gl_FragColor = uFragmentColor;\n" +
-        " gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t)) * vColor;\n" +
+        " gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t)) * vColor * uFragmentColor;\n" +
         "}";
 
     var VERTEX_SHADER =
@@ -191,6 +192,7 @@ function Client() {
         this.mainShader.vertexPositionAttribute = gl.getAttribLocation(this.mainShader, "aVertexPosition");
         this.mainShader.textureCoordAttribute = gl.getAttribLocation(this.mainShader, "aTextureCoord");
         this.mainShader.colorAttribute = gl.getAttribLocation(this.mainShader, "aColor");
+        this.mainShader.fragmentColorUniform = gl.getUniformLocation(this.mainShader, "uFragmentColor");
         this.mainShader.pMatrixUniform = gl.getUniformLocation(this.mainShader, "uPMatrix");
         this.mainShader.mvMatrixUniform = gl.getUniformLocation(this.mainShader, "uMVMatrix");
         this.mainShader.samplerUniform = gl.getUniformLocation(this.mainShader, "uSampler");
@@ -269,6 +271,7 @@ function Client() {
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, textures[this.terrainTexture]);
         gl.uniform1i(this.mainShader.samplerUniform, 0);
+        gl.uniform4f(this.mainShader.fragmentColorUniform, 1, 1, 1, 1);
 
         var arr = [];
         for(var x in this.chunks) {
@@ -340,7 +343,7 @@ function Client() {
         vec3.set(translation, 0, 0, -1);
         mat4.translate(mvMatrix, mvMatrix, translation);
 
-        this.ingameGui.render(this, 0, 0);
+        this.ingameGui.render(this, 0, 0, currentTime);
 
         requestAnimationFrame(this.draw.bind(this));
     }
@@ -568,9 +571,6 @@ function Client() {
         //this.posZ += this.motionZ;
         this.move(this.motionX, this.motionY, this.motionZ);
 
-        this.motionX *= 0.98;
-        this.motionY *= 0.98;
-        this.motionZ *= 0.98;
 
         this.onGround = false;
 
@@ -582,6 +582,15 @@ function Client() {
                 this.posZ >= box[2] && this.posZ <= box[5]) {
                 this.onGround = true;
             }
+        }
+
+        this.motionY *= 0.98;
+        if(this.onGround) {
+            this.motionX *= 0.6 * 0.91;
+            this.motionZ *= 0.6 * 0.91;
+        } else {
+            this.motionX *= 0.91;
+            this.motionZ *= 0.91;
         }
 
         if(forwardPressed) {
@@ -619,7 +628,7 @@ function Client() {
 
     this.init();
 
-    window.addEventListener("keypress", function(e) {
+    function keydown(e) {
         var key = e.key || String.fromCharCode(e.which);
         if(key == null) return;
         key = key.toLowerCase();
@@ -664,7 +673,10 @@ function Client() {
         } else if(key == "e") {
             _this.ingameGui.showInventory = !_this.ingameGui.showInventory;
         }
-    }, false);
+    };
+
+    window.addEventListener("keydown", keydown, false);
+    window.addEventListener("keypress", keydown, false);
 
     window.addEventListener("keyup", function(e) {
         var key = e.key || String.fromCharCode(e.which);

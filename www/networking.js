@@ -50,6 +50,7 @@ function NetworkHandler(client, address) {
         } else if(id == 5) { // chat
             var text = new TextDecoder().decode(new Uint8Array(msg.data, 1));
             console.log(text);
+            client.ingameGui.addMessage(text);
         } else if(id == 6) { // add player
             var dv = new DataView(msg.data);
             var id = dv.getInt32(1);

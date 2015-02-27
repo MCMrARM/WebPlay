@@ -181,15 +181,16 @@ function IngameGui(client) {
     }
     console.log(this.slots);
 
-    this.titleLabel = new GuiLabel(0, 0, 6, null, [0, 0.6, 0, 1]);
-    this.subtitleLabel = new GuiLabel(0, 0, 3, null, [0, 0.6, 0, 1]);
+    this.titleLabel = new GuiLabel(0, 0, 4, null, [0, 0.6, 0, 1]);
+    this.subtitleLabel = new GuiLabel(0, 0, 2, null, [0, 0.6, 0, 1]);
 
-    this.render = function(client, x, y) {
-        gl.uniform1i(client.mainShader.samplerUniform, 3);
-        if(this.titleLabel.text != null)
-            this.titleLabel.render(client, x, y);
-        if(this.subtitleLabel.text != null)
-            this.subtitleLabel.render(client, x, y);
+    this.titleShowTime = -1;
+    this.titleTime = -1;
+    this.titleFade = -1;
+
+    this.chatLabels = [];
+
+    this.render = function(client, x, y, time) {
         gl.uniform1i(client.mainShader.samplerUniform, 0);
         this.hotbar.render(client, x, y);
         this.hotbarSel.render(client, x, y);
@@ -203,6 +204,47 @@ function IngameGui(client) {
             }
         }
         gl.uniform1i(client.mainShader.mainUniform, 0);
+
+        gl.uniform1i(client.mainShader.samplerUniform, 3);
+        if(this.titleFade > 0) {
+            var d = time - this.titleFade;
+            if(d > 500) {
+                this.titleFade = -1;
+                this.titleLabel.text = null;
+                this.subtitleLabel.text = null;
+                this.titleLabel.rebuild();
+                this.subtitleLabel.rebuild();
+            } else if(d != 0) {
+                var v = 0.5 - (Math.cos(d / 500) * Math.PI) / 2;
+                gl.uniform4f(client.mainShader.fragmentColorUniform, 1 - d / 500, 1 - d / 500, 1 - d / 500, 1 - d / 500);
+            }
+        } else if(this.titleTime != -1) {
+            if(time - this.titleShowTime > this.titleTime) {
+                if(this.titleFade == -1) {
+                    this.titleLabel.text = null;
+                    this.subtitleLabel.text = null;
+                    this.titleLabel.rebuild();
+                    this.subtitleLabel.rebuild();
+                } else {
+                    this.titleFade = new Date().getTime();
+                }
+            }
+        }
+        if(this.titleLabel.text != null)
+            this.titleLabel.render(client, x, y);
+        if(this.subtitleLabel.text != null)
+            this.subtitleLabel.render(client, x, y);
+
+        for(var i = this.chatLabels.length - 1; i >= 0; i--) {
+            var lbl = this.chatLabels[i];
+            if(time > lbl.showTime + 2000) {
+                this.chatLabels.splice(i, 1);
+                continue;
+            }
+            lbl.y = this.chatLabels.length * 10 - i * 10 + 20;
+            lbl.render(client, x, y);
+        }
+        gl.uniform4f(client.mainShader.fragmentColorUniform, 1, 1, 1, 1);
     };
 
     this.updateInventory = function() {
@@ -269,6 +311,15 @@ function IngameGui(client) {
         this.subtitleLabel.rebuild();
         this.titleLabel.x = client.canvas.width / client.guiScale / 2 - this.titleLabel.width / 2;
         this.subtitleLabel.x = client.canvas.width / client.guiScale / 2 - this.subtitleLabel.width / 2;
+        this.titleFade = fade ? 0 : -1;
+        this.titleTime = time == -1 ? -1 : (time * 1000);
+        this.titleShowTime = new Date().getTime();
+    };
+
+    this.addMessage = function(msg) {
+        var lbl = new GuiLabel(10, 0, 1, msg, [1, 1, 1, 1]);
+        lbl.showTime = new Date().getTime();
+        this.chatLabels.push(lbl);
     };
 
     client.resizeCallbacks.push(this.setupPositions.bind(this));
