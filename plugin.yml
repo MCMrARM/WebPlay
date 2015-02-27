@@ -1,0 +1,7 @@
+name: WebPlay
+main: webplay\WebPlayPlugin
+version: 1.0.0
+api: [1.6.0]
+author: MrARM
+description: An plugin allowing to play on this server from web browser
+website: http://github.com/MCMrARM/WebPlay
