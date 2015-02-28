@@ -35,16 +35,63 @@ function loadFont(client) {
 }
 
 function buildFont(varr, tarr, carr, x, y, z, s, text, r, g, b, a, cm) {
+    var or = r,
+        og = g,
+        ob = b;
     if(cm == null) cm = 1; // color multiplier
     r *= cm;
     g *= cm;
     b *= cm;
+    var bold = false;
+    var italic = false;
+    var strike = -1;
+    var underline = -1;
     if(baseCharSizes == null) return;
     var _x = x;
+
+    function resetFormatting() {
+        bold = false;
+        italic = false;
+        if(underline != -1) {
+            var x1 = underline;
+            var x2 = x - 1;
+            var y1 = y - s;
+            var y2 = y;
+            varr.push(x2, y2, 0, x1, y2, 0, x2, y1, 0, x1, y2, 0, x1, y1, 0, x2, y1, 0);
+            var texX1 = 89;
+            var texY1 = 105;
+            var texX2 = 90;
+            var texY2 = 106;
+            tarr.push(texX2 / fontWidth, texY1 / fontHeight, texX1 / fontWidth, texY1 / fontHeight, texX2 / fontWidth, texY2 / fontHeight, texX1 / fontWidth, texY1 / fontHeight, texX1 / fontWidth, texY2 / fontHeight, texX2 / fontWidth, texY2 / fontHeight);
+            carr.push(r, g, b, a, r, g, b, a, r, g, b, a);
+            carr.push(r, g, b, a, r, g, b, a, r, g, b, a);
+            underline = -1;
+        }
+        if(strike != -1) {
+            var x1 = strike;
+            var x2 = x;
+            var y1 = y + fontCharHeight / 2;
+            var y2 = y1 + 1;
+            varr.push(x2, y2, 0, x1, y2, 0, x2, y1, 0, x1, y2, 0, x1, y1, 0, x2, y1, 0);
+            var texX1 = 89;
+            var texY1 = 105;
+            var texX2 = 90;
+            var texY2 = 106;
+            tarr.push(texX2 / fontWidth, texY1 / fontHeight, texX1 / fontWidth, texY1 / fontHeight, texX2 / fontWidth, texY2 / fontHeight, texX1 / fontWidth, texY1 / fontHeight, texX1 / fontWidth, texY2 / fontHeight, texX2 / fontWidth, texY2 / fontHeight);
+            carr.push(r, g, b, a, r, g, b, a, r, g, b, a);
+            carr.push(r, g, b, a, r, g, b, a, r, g, b, a);
+            strike = -1;
+        }
+
+        r = or * cm;
+        g = og * cm;
+        b = ob * cm;
+    }
+
     for(var i = 0; i < text.length; i++) {
         var c = text.charCodeAt(i);
         if(c == 167) {
-            // color
+            // formatting
             i++;
             var n = text.charAt(i);
             if(n == "0") {
@@ -111,6 +158,24 @@ function buildFont(varr, tarr, carr, x, y, z, s, text, r, g, b, a, cm) {
                 r = 1;
                 g = 1;
                 b = 1;
+            } else if(n == "k") {
+                // obfuscated; not implementing
+                continue;
+            } else if(n == "l") {
+                bold = true;
+                continue;
+            } else if(n == "m") {
+                strike = x;
+                continue;
+            } else if(n == "n") {
+                underline = x;
+                continue;
+            } else if(n == "o") {
+                italic = true;
+                continue;
+            } else if(n == "r") {
+                resetFormatting();
+                continue;
             } else {
                 continue;
             }
@@ -121,26 +186,49 @@ function buildFont(varr, tarr, carr, x, y, z, s, text, r, g, b, a, cm) {
         }
         if(c > baseCharSizes.length) continue;
         var w = baseCharSizes[c];
+        var dw = w * s;
+        //if(bold) dw *= 2;
         var x1 = x;
         var y1 = y;
-        var x2 = x + w * s;
+        var x2 = x + dw;
         var y2 = y + fontCharHeight * s;
-        varr.push(x2, y2, 0, x1, y2, 0, x2, y1, 0, x1, y2, 0, x1, y1, 0, x2, y1, 0);
+        if(italic) {
+            varr.push(x2 + s * 2, y2, 0, x1 + s * 2, y2, 0, x2, y1, 0, x1 + s * 2, y2, 0, x1, y1, 0, x2, y1, 0);
+            if(bold) {
+                x++;
+                x1++;
+                x2++;
+                varr.push(x2 + s * 2, y2, 0, x1 + s * 2, y2, 0, x2, y1, 0, x1 + s * 2, y2, 0, x1, y1, 0, x2, y1, 0);
+            }
+        } else {
+            varr.push(x2, y2, 0, x1, y2, 0, x2, y1, 0, x1, y2, 0, x1, y1, 0, x2, y1, 0);
+            if(bold) {
+                x++;
+                x1++;
+                x2++;
+                varr.push(x2, y2, 0, x1, y2, 0, x2, y1, 0, x1, y2, 0, x1, y1, 0, x2, y1, 0);
+            }
+        }
         var texY1 = Math.floor(c / 16) * 8;
         var texX1 = (c % 16) * 8;
         var texX2 = texX1 + w;
         var texY2 = texY1 + 8;
         tarr.push(texX2 / fontWidth, texY1 / fontHeight, texX1 / fontWidth, texY1 / fontHeight, texX2 / fontWidth, texY2 / fontHeight, texX1 / fontWidth, texY1 / fontHeight, texX1 / fontWidth, texY2 / fontHeight, texX2 / fontWidth, texY2 / fontHeight);
-        if(carr != null) {
-            carr.push(r, g, b, a);
-            carr.push(r, g, b, a);
-            carr.push(r, g, b, a);
-            carr.push(r, g, b, a);
-            carr.push(r, g, b, a);
-            carr.push(r, g, b, a);
+        if(bold) {
+            tarr.push(texX2 / fontWidth, texY1 / fontHeight, texX1 / fontWidth, texY1 / fontHeight, texX2 / fontWidth, texY2 / fontHeight, texX1 / fontWidth, texY1 / fontHeight, texX1 / fontWidth, texY2 / fontHeight, texX2 / fontWidth, texY2 / fontHeight);
         }
-        x += (w + 1) * s;
+        if(carr != null) {
+            carr.push(r, g, b, a, r, g, b, a, r, g, b, a);
+            carr.push(r, g, b, a, r, g, b, a, r, g, b, a);
+            if(bold) {
+                carr.push(r, g, b, a, r, g, b, a, r, g, b, a);
+                carr.push(r, g, b, a, r, g, b, a, r, g, b, a);
+            }
+        }
+        x += dw + s;
     }
+
+    resetFormatting();
     return(x - _x);
 }
 

@@ -155,10 +155,10 @@ class WebPlayInterface implements SourceInterface {
             $str = " ";
             $str[0] = chr(11);
             $str .= chr($packet->windowid);
-            $str .= pack("S", count($packet->slot));
-            $str .= pack("S", $packet->slot->getId());
-            $str .= chr($packet->slot->getCount());
-            $str .= pack("S", $packet->slot->getDamage());
+            $str .= pack("S", $packet->slot);
+            $str .= pack("S", $packet->item->getId());
+            $str .= chr($packet->item->getCount());
+            $str .= pack("S", $packet->item->getDamage());
             $this->sendPacket($player, $str);
         } else if($packet instanceof SetEntityMotionPacket) {
             $str = " ";

@@ -40,6 +40,14 @@ function GuiElement(x, y, w, h, tex, textureWidth, textureHeight) {
     this.render = function(client, x, y) {
         if(this.tbuffer == null || this.vbuffer == null)
             return;
+        if(this.x == 0 && this.y == 0) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.cbuffer);
+            gl.vertexAttribPointer(client.mainShader.colorAttribute, this.cbuffer.entnum, gl.FLOAT, false, 0, 0);
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.tbuffer);
+            gl.vertexAttribPointer(client.mainShader.textureCoordAttribute, this.tbuffer.entnum, gl.FLOAT, false, 0, 0);
+            drawArray(this.vbuffer, gl.TRIANGLES, client.mainShader);
+            return;
+        }
         var pMvMatrix = mat4.clone(mvMatrix);
 
         vec3.set(translation, this.x, this.y, 0);
@@ -188,6 +196,7 @@ function IngameGui(client) {
     this.titleTime = -1;
     this.titleFade = -1;
 
+    var chatBgEl = new GuiElement(0, -1, 400, 10, [0, 0, 1, 1]);
     this.chatLabels = [];
 
     this.render = function(client, x, y, time) {
@@ -215,8 +224,8 @@ function IngameGui(client) {
                 this.titleLabel.rebuild();
                 this.subtitleLabel.rebuild();
             } else if(d != 0) {
-                var v = 0.5 - (Math.cos(d / 500) * Math.PI) / 2;
-                gl.uniform4f(client.mainShader.fragmentColorUniform, 1 - d / 500, 1 - d / 500, 1 - d / 500, 1 - d / 500);
+                var v = 0.5 - Math.cos(d / 500 * Math.PI) / 2;
+                gl.uniform4f(client.mainShader.fragmentColorUniform, 1 - v, 1 - v, 1 - v, 1 - v);
             }
         } else if(this.titleTime != -1) {
             if(time - this.titleShowTime > this.titleTime) {
@@ -235,16 +244,42 @@ function IngameGui(client) {
         if(this.subtitleLabel.text != null)
             this.subtitleLabel.render(client, x, y);
 
-        for(var i = this.chatLabels.length - 1; i >= 0; i--) {
-            var lbl = this.chatLabels[i];
-            if(time > lbl.showTime + 2000) {
-                this.chatLabels.splice(i, 1);
-                continue;
+
+        gl.uniform4f(client.mainShader.fragmentColorUniform, 0, 0, 0, 0.5);
+        gl.uniform1i(client.mainShader.samplerUniform, 4);
+
+        if(this.chatLabels.length > 0) {
+            var pMvMatrix = mat4.clone(mvMatrix);
+            vec3.set(translation, 10, (this.chatLabels.length - 1) + 10 + 20, 0);
+            mat4.translate(mvMatrix, mvMatrix, translation);
+            vec3.set(translation, 1, this.chatLabels.length, 1);
+            mat4.scale(mvMatrix, mvMatrix, translation);
+
+            chatBgEl.render(client, x, y);
+
+            mvMatrix = pMvMatrix;
+
+            gl.uniform1i(client.mainShader.samplerUniform, 3);
+            gl.uniform4f(client.mainShader.fragmentColorUniform, 1, 1, 1, 1);
+            for(var i = this.chatLabels.length - 1; i >= 0; i--) {
+                var lbl = this.chatLabels[i];
+                if(time > lbl.showTime + 10000) {
+                    this.chatLabels.splice(i, 1);
+                    continue;
+                }
+
+                if(time > lbl.showTime + 9000) {
+                    var v = 0.5 - Math.cos((time - lbl.showTime) / 1000 * Math.PI) / 2;
+                    gl.uniform4f(client.mainShader.fragmentColorUniform, v, v, v, v);
+                }
+                lbl.y = this.chatLabels.length * 10 - i * 10 + 20;
+                lbl.render(client, x, y);
+
+                if(time > lbl.showTime + 9000) {
+                    gl.uniform4f(client.mainShader.fragmentColorUniform, 1, 1, 1, 1);
+                }
             }
-            lbl.y = this.chatLabels.length * 10 - i * 10 + 20;
-            lbl.render(client, x, y);
         }
-        gl.uniform4f(client.mainShader.fragmentColorUniform, 1, 1, 1, 1);
     };
 
     this.updateInventory = function() {

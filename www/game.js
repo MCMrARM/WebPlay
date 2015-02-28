@@ -216,6 +216,10 @@ function Client() {
         gl.enable(gl.CULL_FACE);
         gl.enable(gl.BLEND);
 
+        this.whiteTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.whiteTexture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
+
         this.terrainTexture = initTexture("terrain.png");
         this.itemsTexture = initTexture("items.png");
         this.guiTexture = initTexture("gui.png");
@@ -336,6 +340,8 @@ function Client() {
         gl.bindTexture(gl.TEXTURE_2D, textures[this.itemsTexture]);
         gl.activeTexture(gl.TEXTURE3);
         gl.bindTexture(gl.TEXTURE_2D, textures[fontTexture]);
+        gl.activeTexture(gl.TEXTURE4);
+        gl.bindTexture(gl.TEXTURE_2D, this.whiteTexture);
 
         gl.uniform1i(this.mainShader.samplerUniform, 0);
         mat4.ortho(pMatrix, 0, guiWidth, 0, guiHeight, 0.1, 100);

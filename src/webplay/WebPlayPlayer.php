@@ -11,6 +11,7 @@ class WebPlayPlayer extends Player {
     public function __construct(WebPlayInterface $interface, $connId, $ip, $port){
         $this->connId = $connId;
         parent::__construct($interface, 1, $ip, $port);
+        $this->setRemoveFormat(false);
     }
 
     public function showTitle($title, $subtitle, $time, $fade = true, $titleR = 1, $titleG = 1.0, $titleB = 1.0, $titleA = 1.0, $subtitleR = 1.0, $subtitleG = 1.0, $subtitleB = 1.0, $subtitleA = 1.0) {
