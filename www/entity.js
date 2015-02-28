@@ -7,12 +7,80 @@ function Entity(id, chunk) {
     this.yaw = 0;
     this.pitch = 0;
     this.lastAttackTime = 0;
+    this.name = null;
 
     this.render = function() {
         //
     }
     this.getAABB = function() {
         return [0, 0, 0, 0];
+    }
+
+    var nametagVertexBuilt = null;
+    var nametagTextureBuilt = null;
+    var nametagColorBuilt = null;
+    var nametagWidth = 0;
+
+    this.rebuildNametag = function() {
+        if(nametagVertexBuilt != null) {
+            gl.deleteBuffer(nametagVertexBuilt);
+            nametagVertexBuilt = null;
+        }
+        if(nametagTextureBuilt != null) {
+            gl.deleteBuffer(nametagTextureBuilt);
+            nametagTextureBuilt = null;
+        }
+        if(nametagColorBuilt != null) {
+            gl.deleteBuffer(nametagColorBuilt);
+            nametagColorBuilt = null;
+        }
+        if(this.name == null) return;
+
+        var varr = [];
+        var tarr = [];
+        var carr = [];
+
+        nametagWidth = buildFont(varr, tarr, carr, 0, 0, 0, 1, this.name, 1, 1, 1, 1);
+
+        varr.unshift(nametagWidth, 10, 0, 0, 10, 0, nametagWidth, 0, 0, 0, 10, 0, 0, 0, 0, nametagWidth, 0, 0);
+        var texX1 = 89;
+        var texY1 = 105;
+        var texX2 = 90;
+        var texY2 = 106;
+        tarr.unshift(texX2 / fontWidth, texY1 / fontHeight, texX1 / fontWidth, texY1 / fontHeight, texX2 / fontWidth, texY2 / fontHeight, texX1 / fontWidth, texY1 / fontHeight, texX1 / fontWidth, texY2 / fontHeight, texX2 / fontWidth, texY2 / fontHeight);
+        carr.unshift(0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5);
+        carr.unshift(0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5);
+
+        nametagVertexBuilt = createBuffer(varr, 3, gl.STATIC_DRAW);
+        nametagTextureBuilt = createBuffer(tarr, 2, gl.STATIC_DRAW);
+        nametagColorBuilt = createBuffer(carr, 4, gl.STATIC_DRAW);
+    }
+    this._nametagX = -1;
+    this._nametagY = -1;
+    this._nametagZ = -1;
+    this.renderNametag = function() {
+        if(nametagVertexBuilt == null || nametagTextureBuilt == null || nametagColorBuilt == null)
+            return;
+
+        if(this._nametagX < 0 && this._nametagY < 0) return;
+
+        var pMvMatrix = mat4.clone(mvMatrix);
+        vec3.set(translation, this._nametagX, this._nametagY, 0);
+        mat4.translate(mvMatrix, mvMatrix, translation);
+
+        vec3.set(translation, 4 / this._nametagZ, 4 / this._nametagZ, 0);
+        mat4.scale(mvMatrix, mvMatrix, translation);
+
+        vec3.set(translation, -nametagWidth / 2, 0, 0);
+        mat4.translate(mvMatrix, mvMatrix, translation);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, nametagColorBuilt);
+        gl.vertexAttribPointer(client.mainShader.colorAttribute, nametagColorBuilt.entnum, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, nametagTextureBuilt);
+        gl.vertexAttribPointer(client.mainShader.textureCoordAttribute, nametagTextureBuilt.entnum, gl.FLOAT, false, 0, 0);
+        drawArray(nametagVertexBuilt, gl.TRIANGLES, client.mainShader);
+
+        mvMatrix = pMvMatrix;
     }
 }
 
@@ -46,6 +114,8 @@ function PlayerEntity(client, id, chunk, name) {
     this.getAABB = function() {
         return [-0.3, 0, 0.3, 1.8];
     }
+
+    this.rebuildNametag();
 }
 
 function EntityRenderer() {
@@ -136,34 +206,31 @@ function PlayerRenderer(client) {
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, textures[client.playerTexture]);
 
-        /*
-		var nameTagDiv = document.getElementById("nt"+entity.id);
-		if(nameTagDiv == null) {
-			nameTagDiv = document.createElement("div");
-			nameTagDiv.id = "nt"+entity.id;
-			nameTagDiv.style.backgroundColor = "rgba(0, 0, 0, 0.2)";
-			nameTagDiv.style.color = "white";
-			//nameTagDiv.style.minWidth = 20;
-			//nameTagDiv.style.minHegiht = 20;
-			nameTagDiv.style.position = "absolute";
-			nameTagDiv.innerHTML = entity.name;
-			document.body.appendChild(nameTagDiv);
-		}
-		var pos = vec4.create();
-		vec4.set(pos, 0, 2, 0, 1);
-		vec4.transformMat4(pos, pos, mvMatrix);
-		vec4.transformMat4(pos, pos, pMatrix);
-		if(pos[3] > 0.0) {
-			pos[0] /= pos[3];
-			pos[1] /= pos[3];
-			pos[0] = (pos[0] * 0.5 + 0.5) * gl.viewportWidth;
-			pos[1] = (-pos[1] * 0.5 + 0.5) * gl.viewportHeight;
-			nameTagDiv.style.left = pos[0];
-			nameTagDiv.style.top = pos[1];
-			
-			var dist = vec3.distance(vec3.set(vec3.create(), entity.x, entity.y, entity.z), vec3.set(vec3.create(), posX, posY, posZ));
-			nameTagDiv.style.fontSize = (28 / (dist / 4)) + "px";
-		}*/
+        if(entity.name != null) {
+            var pos = vec4.create();
+            vec4.set(pos, 0, 2.2, 0, 1);
+            vec4.transformMat4(pos, pos, mvMatrix);
+            vec4.transformMat4(pos, pos, pMatrix);
+            if(pos[3] > 0.0) {
+                pos[0] /= pos[3];
+                pos[1] /= pos[3];
+                pos[0] = (pos[0] * 0.5 + 0.5);
+                pos[1] = (pos[1] * 0.5 + 0.5);
+                if(pos[0] > 1 || pos[1] > 1) {
+                    entity._nametagX = -1;
+                    entity._nametagY = -1;
+                } else {
+                    pos[0] *= gl.viewportWidth / client.guiScale;
+                    pos[1] *= gl.viewportHeight / client.guiScale;
+                    entity._nametagX = pos[0];
+                    entity._nametagY = pos[1];
+                    entity._nametagZ = pos[2];
+                }
+            } else {
+                entity._nametagX = -1;
+                entity._nametagY = -1;
+            }
+        }
         this.head.rotX = entity.pitch;
         this.head.rotY = -entity.yaw;
         this.head.render(client);

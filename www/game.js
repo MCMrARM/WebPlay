@@ -349,6 +349,13 @@ function Client() {
         vec3.set(translation, 0, 0, -1);
         mat4.translate(mvMatrix, mvMatrix, translation);
 
+        gl.uniform1i(this.mainShader.samplerUniform, 3);
+        for(var entityId in this.entities) {
+            if(!this.entities.hasOwnProperty(entityId)) continue;
+            var entity = this.entities[entityId];
+            entity.renderNametag();
+        }
+
         this.ingameGui.render(this, 0, 0, currentTime);
 
         requestAnimationFrame(this.draw.bind(this));

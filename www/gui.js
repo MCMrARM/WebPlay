@@ -187,7 +187,6 @@ function IngameGui(client) {
             this.slots[j * 9 + i] = new GuiItem(10 + i * 20, 3 + j * 20, 16, 16, getBlockById(1));
         }
     }
-    console.log(this.slots);
 
     this.titleLabel = new GuiLabel(0, 0, 4, null, [0, 0.6, 0, 1]);
     this.subtitleLabel = new GuiLabel(0, 0, 2, null, [0, 0.6, 0, 1]);

@@ -48,6 +48,7 @@ function buildFont(varr, tarr, carr, x, y, z, s, text, r, g, b, a, cm) {
     var underline = -1;
     if(baseCharSizes == null) return;
     var _x = x;
+    var mWidth = 0;
 
     function resetFormatting() {
         bold = false;
@@ -183,6 +184,14 @@ function buildFont(varr, tarr, carr, x, y, z, s, text, r, g, b, a, cm) {
             g *= cm;
             b *= cm;
             continue;
+        } else if(c == 10) { // new line
+            var lWidth = (x - _x);
+            if(lWidth > mWidth) {
+                mWidth = lWidth;
+            }
+            x = _x;
+            y -= s * 10;
+            continue;
         }
         if(c > baseCharSizes.length) continue;
         var w = baseCharSizes[c];
@@ -229,7 +238,11 @@ function buildFont(varr, tarr, carr, x, y, z, s, text, r, g, b, a, cm) {
     }
 
     resetFormatting();
-    return(x - _x);
+    var lWidth = (x - _x);
+    if(lWidth > mWidth) {
+        mWidth = lWidth;
+    }
+    return mWidth;
 }
 
 function buildFontShadow(varr, tarr, carr, x, y, z, s, text, r, g, b, a) {
